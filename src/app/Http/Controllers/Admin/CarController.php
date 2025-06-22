@@ -13,7 +13,8 @@ class CarController extends Controller
 {
     public function index(Request $request)
     {
-        $cars = Car::with(['carModel', 'images'])->latest()->paginate(10);
+        $perPage = $request->get('per_page', 25);
+        $cars = Car::with(['carModel', 'images'])->latest()->paginate($perPage);
         return view('admin.cars.index', compact('cars'));
     }
 
