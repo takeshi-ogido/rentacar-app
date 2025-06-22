@@ -8,7 +8,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-
+use Carbon\Carbon;
 
 class LoginController extends Controller
 {
@@ -28,6 +28,12 @@ class LoginController extends Controller
         $request->authenticate();
 
         $request->session()->regenerate();
+
+        // ログイン時刻を更新
+        $user = Auth::user();
+        if ($user) {
+            $user->update(['last_login_at' => Carbon::now()]);
+        }
 
         return redirect()->intended(route('mypage', absolute: false));
     }

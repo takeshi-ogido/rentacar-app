@@ -74,6 +74,7 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <div class="flex items-center space-x-2">
+                                            <a href="{{ route('admin.cars.show', $car) }}" class="text-xs bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-2 rounded">詳細</a>
                                             <form action="{{ route('admin.cars.togglePublish', $car) }}" method="POST" class="inline-block">
                                                 @csrf
                                                 @method('PATCH')

@@ -5,6 +5,9 @@ use App\Http\Controllers\Admin\Auth\RegisteredUserController as AdminRegisteredU
 use App\Http\Controllers\Admin\Auth\ProfileController as AdminProfileController; 
 use App\Http\Controllers\Admin\CarController as AdminCarController;
 use App\Http\Controllers\Admin\CustomerController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\ReservationController as AdminReservationController;
+use App\Http\Controllers\Admin\SalesController;
 use App\Http\Controllers\User\Auth\ProfileController as UserProfileController; 
 use App\Http\Controllers\User\CarController;
 use Illuminate\Support\Facades\Route;
@@ -33,27 +36,32 @@ Route::prefix('admin')->name('admin.')->group(function () {
     // 認証済みの管理者向け
     // 管理者側のヘッダー
     Route::middleware('auth:admin')->group(function () { // 'admin' ガードを想定
-        Route::get('/dashboard', function () {
-            return view('admin.dashboard'); // admin.dashboard ビューを作成する必要あり
-        })->name('dashboard');
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
         // 車両管理
         Route::resource('cars', AdminCarController::class)->except(['show']); 
+        Route::get('cars/{car}', [AdminCarController::class, 'show'])->name('cars.show');
         Route::patch('cars/{car}/toggle-publish', [AdminCarController::class, 'togglePublish'])->name('cars.togglePublish');
+
+        // 予約管理
+        Route::resource('reservations', AdminReservationController::class);
+        Route::get('reservations/create', [AdminReservationController::class, 'create'])->name('reservations.create');
+        Route::post('reservations', [AdminReservationController::class, 'store'])->name('reservations.store');
+
+        // カレンダー管理
+        Route::get('calendar', [App\Http\Controllers\Admin\CalendarController::class, 'index'])->name('calendar.index');
+        Route::get('calendar/reservations', [App\Http\Controllers\Admin\CalendarController::class, 'getReservations'])->name('calendar.reservations');
 
         // 顧客管理
         Route::get('customers', [CustomerController::class, 'index'])->name('customers.index');
+        Route::get('customers/{customer}', [CustomerController::class, 'show'])->name('customers.show');
 
         // 売上管理
-        Route::get('/reports', function () {
-            return view('admin.reports.sales');
-        })->name('reports.sales');
+        Route::get('/reports', [SalesController::class, 'index'])->name('reports.sales');
 
         // システム設定
-        Route::get('/settings', function () {
-            return view('admin.settings.index');
-        })->name('settings.index');
-
+        Route::get('/settings', [\App\Http\Controllers\Admin\SettingsController::class, 'index'])->name('settings.index');
+        Route::put('/settings', [\App\Http\Controllers\Admin\SettingsController::class, 'update'])->name('settings.update');
 
         // 管理者ログアウト
         Route::post('/logout', [AdminAuthenticatedSessionController::class, 'destroy'])->name('logout');
