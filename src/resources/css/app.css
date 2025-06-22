@@ -1,3 +1,12 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+[x-cloak] {
+    display: none;
+}
+
+/* app.css や blade の <style> などに */
+[x-cloak] {
+    display: none !important;
+}
