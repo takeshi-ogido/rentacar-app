@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Notifications\ReservationCompleted;
 use App\Models\{Reservation, Car, Option};
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Carbon;
 
 class ReservationController extends Controller
@@ -22,9 +24,17 @@ class ReservationController extends Controller
             if (!isset($options[$id]) || !$val) continue;
             $opt = $options[$id];
             $qty = $opt->is_quantity ? (int)$val : 1;
-            $price = $opt->price * $qty * $days;
+
+            if ($opt->is_quantity) {
+                // 数量課金オプション (チャイルドシートなど) は固定料金
+                $price = $opt->price * $qty;
+            } else {
+                // 日額課金オプション (Wi-Fiなど) は日数で計算
+                $price = $opt->price * $qty * $days; // $qty は常に1
+            }
+
             $optionTotal += $price;
-            $selected[] = ['name' => $opt->name, 'price' => $price, 'unit_price' => $opt->price, 'quantity' => $qty];
+            $selected[] = ['name' => $opt->name, 'price' => $price, 'unit_price' => $opt->price, 'quantity' => $qty, 'is_quantity' => $opt->is_quantity];
         }
 
         return [
@@ -161,8 +171,8 @@ class ReservationController extends Controller
         $reservation = new Reservation([...$validated, 'car_id' => $car->id, 'user_id' => auth()->id(), 'options_json' => json_encode($options), 'status' => 'confirmed', 'total_price' => $priceData['total']]);
         $reservation->save();
 
-        // Notification::route('mail', $reservation->email)->notify(new ReservationCompleted($reservation));
-        // Notification::route('mail', config('mail.admin_address'))->notify(new ReservationCompleted($reservation));
+        Notification::route('mail', $reservation->email)->notify(new ReservationCompleted($reservation));
+        Notification::route('mail', config('mail.admin_address'))->notify(new ReservationCompleted($reservation));
 
         return redirect()->route('user.cars.reservations.complete', ['car' => $car->id, 'reservation' => $reservation->id]);
     }

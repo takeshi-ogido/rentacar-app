@@ -31,10 +31,12 @@
                         @foreach ($selectedOptionsDisplay as $opt)
                             <li>
                                 {{ $opt['name'] }}：¥{{ number_format($opt['unit_price']) }}
-                                @if ($opt['quantity'] > 1)
+                                @if ($opt['is_quantity'])
                                     × {{ $opt['quantity'] }}個
+                                    = <strong>¥{{ number_format($opt['price']) }}</strong>
+                                @else
+                                    × {{ $days }}日 = <strong>¥{{ number_format($opt['price']) }}</strong>
                                 @endif
-                                × {{ $days }}日 = <strong>¥{{ number_format($opt['price']) }}</strong>
                             </li>
                         @endforeach
                     </ul>

@@ -16,7 +16,7 @@
                         <ul class="text-sm text-gray-700 space-y-2">
                             <li>利用開始：{{ $start ? $start->format('Y年m月d日 H:i') : '未指定' }}</li>
                             <li>利用終了：{{ $end ? $end->format('Y年m月d日 H:i') : '未指定' }}</li>
-                            <li>期間：{{ $isSameDay ? '日帰り' : "{$nights}泊{$days}日" }}</li>
+                            <li>期間：{{ $nights == 0 ? '日帰り' : "{$nights}泊{$days}日" }}</li>
                             <li>1日あたり：¥{{ number_format($car->price) }}</li>
                             <li>合計料金（税込）：¥{{ number_format($totalPrice) }}</li>
                         </ul>
@@ -100,7 +100,7 @@
                                     <div class="mt-4 sm:mt-0 sm:ml-auto text-right min-w-[160px]">
                                         @if ($option->is_quantity)
                                             <div class="mb-1 text-gray-700">
-                                                料金：+¥{{ number_format($option->price) }} / 日
+                                                料金：+¥{{ number_format($option->price) }} / 個
                                             </div>
                                             <label class="block mb-1 text-gray-700 font-medium">数量</label>
                                             <select name="options[{{ $option->id }}]" class="w-full border border-gray-300 rounded px-2 py-1">

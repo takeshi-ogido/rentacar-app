@@ -9,6 +9,8 @@ use App\Http\Controllers\User\Auth\ProfileController as UserProfileController;
 use App\Http\Controllers\User\CarController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\User\ReservationController;
+use Illuminate\Support\Facades\Mail;
+
 
 // 管理者側ルーティング
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -102,6 +104,17 @@ Route::prefix('/cars/{car}/reservations')->name('user.cars.reservations.')->grou
     // 7. 予約完了画面（GET）
     Route::get('complete/{reservation}', [ReservationController::class, 'complete'])
         ->name('complete');
+
+        // routes/web.php
+    Route::get('/test-mail', function () {
+        Mail::raw('テストメールの本文です。', function ($message) {
+            $message->to('あなた自身の別メールアドレス') // 宛先アドレスに自分の他のアドレスなど
+                    ->subject('Laravelからのテストメール');
+        });
+
+        return 'メール送信完了';
+    });
+
 });
 
 

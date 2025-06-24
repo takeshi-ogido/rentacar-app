@@ -12,7 +12,7 @@
                 <!-- 左カラム：検索フォーム -->
                 <div class="w-full md:w-1/3">
                     <form method="GET" action="{{ route('user.cars.index') }}" class="bg-white p-6 rounded shadow sticky top-24">
-                        <h2 class="text-lg font-semibold mb-4">レンタカーをさがそう！</h2>
+                        <h2 class="text-lg  text-center font-semibold mb-4">レンタカーをさがそう！</h2>
 
                         {{-- 他の絞り込み条件を維持するための隠しフィールド --}}
                         <input type="hidden" name="type" value="{{ request('type') }}">
@@ -23,11 +23,11 @@
                         <div class="mb-4 flex flex-wrap gap-4">
                             <div class="flex-1 min-w-[150px]">
                                 <label for="start_date" class="block text-sm font-medium text-gray-700 mb-1">利用開始日</label>
-                                <input type="text" id="start_date" name="start_date" class="border rounded p-2 w-full" value="{{ request('start_date') }}">
+                                <input type="text" id="start_date" name="start_date" class="border rounded p-2 w-full" value="{{ old('start_date', request('start_date', date('Y-m-d'))) }}">
                             </div>
                             <div class="flex-1 min-w-[100px]">
                                 <label for="start_time" class="block text-sm font-medium text-gray-700 mb-1">利用開始時間</label>
-                                <input type="time" step="60" id="start_time" name="start_time" class="border rounded p-2 w-full" value="{{ request('start_time') }}">
+                                <input type="time" step="60" id="start_time" name="start_time" class="border rounded p-2 w-full" value="{{ old('start_time', request('start_time', date('H:i'))) }}">
                             </div>
                         </div>
 
@@ -37,11 +37,11 @@
                         <div class="mb-4 flex flex-wrap gap-4">
                             <div class="flex-1 min-w-[150px]">
                                 <label for="end_date" class="block text-sm font-medium text-gray-700 mb-1">利用終了日</label>
-                                <input type="text" id="end_date" name="end_date" class="border rounded p-2 w-full" value="{{ request('end_date') }}">
+                                <input type="text" id="end_date" name="end_date" class="border rounded p-2 w-full" value="{{ old('end_date', request('end_date', date('Y-m-d', strtotime('+1 day')))) }}">
                             </div>
                             <div class="flex-1 min-w-[100px]">
                                 <label for="end_time" class="block text-sm font-medium text-gray-700 mb-1">利用終了時間</label>
-                                <input type="time" step="60" id="end_time" name="end_time" class="border rounded p-2 w-full" value="{{ request('end_time') }}">
+                                <input type="time" step="60" id="end_time" name="end_time" class="border rounded p-2 w-full" value="{{ old('end_time', request('end_time', date('H:i'))) }}">
                             </div>
                         </div>
 
@@ -61,22 +61,21 @@
                                 @foreach (['start_date', 'start_time', 'end_date', 'end_time'] as $param)
                                     <input type="hidden" name="{{ $param }}" value="{{ request($param) }}">
                                 @endforeach
-
-                                <select name="type" onchange="this.form.submit()" class="w-40 border-gray-300 rounded-md shadow-sm px-2 py-1">
+                                <select name="type" onchange="this.form.submit()" class="sm:w-40 border-gray-300 rounded-md shadow-sm px-2 py-1">
                                     <option value="">車種</option>
-                                    @foreach (['軽自動車', 'コンパクトカー','セダン', 'SUV','ミニバン','ハイエース'] as $type)
+                                    @foreach (['軽自動車', 'コンパクト','セダン', 'SUV','ミニバン','ハイエース'] as $type)
                                         <option value="{{ $type }}" {{ request('type') == $type ? 'selected' : '' }}>{{ $type }}</option>
                                     @endforeach
                                 </select>
 
-                                <select name="capacity" onchange="this.form.submit()" class="w-40 border-gray-300 rounded-md shadow-sm px-2 py-1">
+                                <select name="capacity" onchange="this.form.submit()" class="sm:w-40 border-gray-300 rounded-md shadow-sm pl-5 py-1">
                                     <option value="">人数</option>
                                     @for ($i = 1; $i <= 10; $i++)
                                         <option value="{{ $i }}" {{ request('capacity') == $i ? 'selected' : '' }}>{{ $i }}人</option>
                                     @endfor
                                 </select>
 
-                                <select name="sort" onchange="this.form.submit()" class="w-40 border-gray-300 rounded-md shadow-sm px-2 py-1">
+                                <select name="sort" onchange="this.form.submit()" class="sm:w-40 border-gray-300 rounded-md shadow-sm px-2 py-1">
                                     <option value="">並び替え</option>
                                     <option value="price_asc" {{ request('sort') == 'price_asc' ? 'selected' : '' }}>料金が安い順</option>
                                     <option value="price_desc" {{ request('sort') == 'price_desc' ? 'selected' : '' }}>料金が高い順</option>
@@ -87,7 +86,7 @@
                         {{-- 結果表示 --}}
                         @if ($cars->isNotEmpty())
                             @foreach ($cars as $car)
-                                <div class="border rounded-lg p-4 shadow-sm flex gap-4 w-full mb-4">
+                                <div class="border rounded-lg p-4 shadow-sm flex flex-col gap-4 w-full mb-4">
                                     {{-- 画像ギャラリー --}}
                                     <div x-data="{ selected: '{{ $car->images->first()?->filepath ?? '' }}' }">
                                         @php $images = $car->images; @endphp
@@ -148,9 +147,11 @@
                                         {{-- 料金表示 --}}
                                         <div class="mt-3 font-bold text-lg text-blue-600">
                                             @if ($car->totalPrice)
-                                                合計料金: ¥{{ number_format($car->totalPrice) }}
-                                                <span class="text-sm text-gray-600 ml-2">（{{ $car->durationLabel }}）</span>
-                                                <div class="text-sm text-gray-500">1日あたり: ¥{{ number_format($car->price) }}</div>
+                                                <div class="mb-1">
+                                                    合計料金: ¥{{ number_format($car->totalPrice) }}
+                                                    <span class="text-sm text-gray-600 ml-2">（{{ $car->durationLabel === '0泊1日' ? '日帰り' : $car->durationLabel }}）</span>
+                                                </div>
+                                                <div class="text-sm text-gray-500">1日あたり料金: ¥{{ number_format($car->price) }}</div>
                                             @else
                                                 <div class="text-sm text-gray-500">1日あたり料金: ¥{{ number_format($car->price) }}</div>
                                             @endif
@@ -163,8 +164,11 @@
                                                 'start_datetime' => request('start_date') && request('start_time') ? request('start_date') . ' ' . request('start_time') : null,
                                                 'end_datetime' => request('end_date') && request('end_time') ? request('end_date') . ' ' . request('end_time') : null,
                                             ]) }}"
-                                               class="inline-block bg-green-500 hover:bg-green-600 text-white text-sm px-4 py-2 rounded"
-                                               onclick="if (!'{{ request('start_date') }}' || !'{{ request('start_time') }}' || !'{{ request('end_date') }}' || !'{{ request('end_time') }}') { alert('利用日時をすべて指定して検索してください。'); return false; }">
+                                               class="inline-block bg-green-500 hover:bg-green-600 text-white text-sm px-4 py-2 rounded car-detail-link"
+                                               {{-- onclick属性はJavaScriptで動的に設定するため削除 --}}
+                                               data-car-id="{{ $car->id }}"
+                                               data-base-url="{{ route('user.cars.show', ['car' => $car->id]) }}"
+                                            >
                                                 詳細を見る
                                             </a>
                                         </div>
@@ -202,7 +206,15 @@
                     format: 'YYYY-MM-DD',
                     minDate: new Date(),
                     setup: (picker) => {
-                        picker.on('selected', () => updateEndConstraints());
+                        picker.on('selected', () => {
+                            // 開始時刻を現在の時刻に設定
+                            const now = new Date();
+                            const hours = String(now.getHours()).padStart(2, '0');
+                            const minutes = String(now.getMinutes()).padStart(2, '0');
+                            startTimeEl.value = `${hours}:${minutes}`;
+
+                            updateEndConstraints();
+                        });
                     }
                 });
 
@@ -226,7 +238,15 @@
                 function updateEndConstraints() {
                     const startDate = startDateEl.value;
                     if (startDate) {
+                        // 終了日の最小選択可能日を開始日に設定
                         endPicker.setOptions({ minDate: startDate });
+
+                        // 現在の終了日が新しい開始日より前の場合、または終了日が未設定の場合、
+                        // 終了日を開始日と同じ日付に設定する
+                        if (!endDateEl.value || new Date(endDateEl.value) < new Date(startDate)) {
+                            endDateEl.value = startDate;
+                            endPicker.setDate(startDate); // Litepickerの表示も更新
+                        }
                     }
                     validateEndTime();
                 }
@@ -254,6 +274,38 @@
                 }
 
                 updateEndConstraints();
+
+                // 詳細を見るボタンの動的なURL生成とバリデーション
+                document.querySelectorAll('.car-detail-link').forEach(link => {
+                    link.addEventListener('click', function(event) {
+                        const startDate = startDateEl.value;
+                        const startTime = startTimeEl.value;
+                        const endDate = endDateEl.value;
+                        const endTime = endTimeEl.value;
+
+                        // 入力値のバリデーション
+                        if (!startDate || !startTime || !endDate || !endTime) {
+                            event.preventDefault(); // リンクの遷移をキャンセル
+                            alert('利用開始と終了の日時を両方入力してください。');
+                            return false;
+                        }
+
+                        // URLを動的に構築
+                        const carId = this.dataset.carId;
+                        const baseUrl = this.dataset.baseUrl;
+                        const newUrl = new URL(baseUrl);
+                        newUrl.searchParams.set('start_datetime', `${startDate} ${startTime}`);
+                        newUrl.searchParams.set('end_datetime', `${endDate} ${endTime}`);
+
+                        // 既存のクエリパラメータ（絞り込み条件など）も引き継ぐ
+                        new URLSearchParams(window.location.search).forEach((value, key) => {
+                            if (!['start_date', 'start_time', 'end_date', 'end_time'].includes(key)) { // 日時関連は新しい値で上書きするため除外
+                                newUrl.searchParams.set(key, value);
+                            }
+                        });
+                        this.href = newUrl.toString(); // リンクのhref属性を更新
+                    });
+                });
             });
         </script>
     @endpush

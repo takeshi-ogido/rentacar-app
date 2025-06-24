@@ -41,17 +41,19 @@
                     <strong>車両料金：</strong> ¥{{ number_format($car->price) }} × {{ $days }}日 = ¥{{ number_format($carPrice) }}
                 </div>
 
-                @if (!empty($selectedOptionsDisplayArray))
+                @if (!empty($selectedOptionsDisplay))
                 <div class="mt-4">
                         <strong>選択オプション：</strong>
                         <ul class="list-disc list-inside mt-2 space-y-1 text-sm">
-                            @foreach ($selectedOptionsDisplayArray as $opt)
+                            @foreach ($selectedOptionsDisplay as $opt)
                                 <li>
                                     {{ $opt['name'] }}：¥{{ number_format($opt['unit_price']) }}
-                                    @if ($opt['quantity'] > 1)
+                                    @if ($opt['is_quantity'])
                                         × {{ $opt['quantity'] }}個
+                                        = <strong>¥{{ number_format($opt['price']) }}</strong>
+                                    @else
+                                        × {{ $days }}日 = <strong>¥{{ number_format($opt['price']) }}</strong>
                                     @endif
-                                    × {{ $days }}日 = <strong>¥{{ number_format($opt['price']) }}</strong>
                                 </li>
                             @endforeach
                         </ul>
