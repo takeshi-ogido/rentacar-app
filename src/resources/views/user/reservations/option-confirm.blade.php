@@ -30,9 +30,8 @@
                 <div>
                     <strong>利用終了：</strong> {{ $end ? $end->format('Y年m月d日 H:i') : '未指定' }}
                 </div>
-
                 <div>
-                    <strong>期間：</strong> {{ $isSameDay ? '日帰り' : "{$nights}泊{$days}日" }}
+                    <strong>期間：</strong> {{ $isDayTrip ? '日帰り' : "{$nights}泊{$days}日" }}
                 </div>
 
                 <hr class="my-4">
@@ -41,17 +40,19 @@
                     <strong>車両料金：</strong> ¥{{ number_format($car->price) }} × {{ $days }}日 = ¥{{ number_format($carPrice) }}
                 </div>
 
-                @if (!empty($selectedOptionsDisplayArray))
+                @if (!empty($selectedOptionsDisplay))
                 <div class="mt-4">
                         <strong>選択オプション：</strong>
                         <ul class="list-disc list-inside mt-2 space-y-1 text-sm">
-                            @foreach ($selectedOptionsDisplayArray as $opt)
+                            @foreach ($selectedOptionsDisplay as $opt)
                                 <li>
                                     {{ $opt['name'] }}：¥{{ number_format($opt['unit_price']) }}
-                                    @if ($opt['quantity'] > 1)
+                                    @if ($opt['is_quantity'])
                                         × {{ $opt['quantity'] }}個
+                                        = <strong>¥{{ number_format($opt['price']) }}</strong>
+                                    @else
+                                        × {{ $days }}日 = <strong>¥{{ number_format($opt['price']) }}</strong>
                                     @endif
-                                    × {{ $days }}日 = <strong>¥{{ number_format($opt['price']) }}</strong>
                                 </li>
                             @endforeach
                         </ul>
@@ -84,8 +85,11 @@
                 @endforeach
 
                 <div class="flex justify-between">
-                    <a href="{{ url()->previous() }}" 
-                    class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded">
+                    <a href="{{ route('user.cars.show', [
+                        'car' => $car->id,
+                        'start_datetime' => $start_datetime_str,
+                        'end_datetime' => $end_datetime_str,
+                        'options' => $selected_options_for_post]) }}" class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded">
                         戻る
                     </a>
                     <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded">
