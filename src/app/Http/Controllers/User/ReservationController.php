@@ -11,10 +11,20 @@ use Illuminate\Support\Carbon;
 
 class ReservationController extends Controller
 {
+    // 料金の計算ロジック（日数×基本料金）
     private function calculatePrice(Car $car, Carbon $start, Carbon $end, array $selectedOptions): array
     {
-        $days = max(ceil($start->diffInMinutes($end) / 1440), 1);
-        $carPrice = $car->price * $days;
+        // 1. 料金計算用の日数 (24時間単位で切り上げ)
+        // 例: 23時間59分 -> 1日, 24時間00分 -> 1日, 24時間01分 -> 2日
+        $billingDays = max(ceil($start->diffInMinutes($end) / 1440), 1);
+        $carPrice = $car->price * $billingDays;
+
+        // 2. 表示用の日数と泊数 (カレンダー上の日付を基準)
+        // 例: 4/20 10:00 - 4/20 18:00 -> 0泊1日
+        // 例: 4/20 10:00 - 4/21 10:00 -> 1泊2日
+        $displayNights = $start->copy()->startOfDay()->diffInDays($end->copy()->startOfDay());
+        $displayDays = $displayNights + 1;
+        $isDayTrip = ($displayNights === 0); // 0泊なら日帰り
 
         $options = Option::findMany(array_keys($selectedOptions))->keyBy('id');
         $optionTotal = 0;
@@ -28,9 +38,9 @@ class ReservationController extends Controller
             if ($opt->is_quantity) {
                 // 数量課金オプション (チャイルドシートなど) は固定料金
                 $price = $opt->price * $qty;
-            } else {
+            } else { // 日額課金オプション (Wi-Fiなど) は表示用の日数で計算
                 // 日額課金オプション (Wi-Fiなど) は日数で計算
-                $price = $opt->price * $qty * $days; // $qty は常に1
+                $price = $opt->price * $qty * $displayDays; // $qty は常に1
             }
 
             $optionTotal += $price;
@@ -38,9 +48,9 @@ class ReservationController extends Controller
         }
 
         return [
-            'days' => $days,
-            'nights' => max($days - 1, 0),
-            'isSameDay' => $start->isSameDay($end),
+            'days' => $displayDays, // 表示用
+            'nights' => $displayNights, // 表示用
+            'isDayTrip' => $isDayTrip, // 表示用
             'carPrice' => $carPrice,
             'optionTotal' => $optionTotal,
             'selectedOptionsDisplay' => $selected,
@@ -48,6 +58,7 @@ class ReservationController extends Controller
         ];
     }
 
+    // オプションと日数の計算ロジック
     public function showOptionConfirm(Car $car, Request $request)
     {
         $validated = $request->validate([
@@ -74,6 +85,7 @@ class ReservationController extends Controller
         ));
     }
 
+    // 車の予約状況のバリデーション
     public function carConfirm(Car $car, Request $request)
     {
         $validated = $request->validate([
@@ -87,6 +99,7 @@ class ReservationController extends Controller
         return redirect()->route('user.cars.reservations.input', ['car' => $car->id]);
     }
 
+    // ユーザーの予約状況の変数たち
     public function input(Car $car)
     {
         $data = session("reservation.{$car->id}");
@@ -109,6 +122,7 @@ class ReservationController extends Controller
         ));
     }
 
+    // ユーザー情報のバリデーション
     private function reservationValidationRules(): array
     {
         return [
@@ -129,6 +143,7 @@ class ReservationController extends Controller
         ];
     }
 
+    // 最後の予約確認
     public function finalConfirm(Car $car, Request $request)
     {
         $validated = $request->validate($this->reservationValidationRules());
@@ -151,6 +166,8 @@ class ReservationController extends Controller
         ));
     }
 
+    
+    // 最後の予約確認
     public function reserved(Car $car, Request $request)
     {
         $validated = $request->validate($this->reservationValidationRules());
@@ -177,6 +194,7 @@ class ReservationController extends Controller
         return redirect()->route('user.cars.reservations.complete', ['car' => $car->id, 'reservation' => $reservation->id]);
     }
 
+    // 予約完了メソッド
     public function complete(Car $car, Reservation $reservation)
     {
         return view('user.reservations.complete', compact('reservation'));

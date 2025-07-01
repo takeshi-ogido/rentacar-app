@@ -110,17 +110,6 @@
                                                     </div>
                                                 @endforeach
                                             </div>
-                                        @else
-                                            <div class="w-full aspect-video bg-gray-200 flex items-center justify-center text-sm text-gray-500 rounded mb-2">
-                                                No Image
-                                            </div>
-                                            <div class="flex gap-2">
-                                                @for ($i = 0; $i < 4; $i++)
-                                                    <div class="w-16 h-12 bg-gray-100 border flex items-center justify-center text-xs text-gray-400 rounded">
-                                                        No Image
-                                                    </div>
-                                                @endfor
-                                            </div>
                                         @endif
                                     </div>
 
@@ -146,15 +135,11 @@
 
                                         {{-- 料金表示 --}}
                                         <div class="mt-3 font-bold text-lg text-blue-600">
-                                            @if ($car->totalPrice)
-                                                <div class="mb-1">
-                                                    合計料金: ¥{{ number_format($car->totalPrice) }}
-                                                    <span class="text-sm text-gray-600 ml-2">（{{ $car->durationLabel === '0泊1日' ? '日帰り' : $car->durationLabel }}）</span>
-                                                </div>
-                                                <div class="text-sm text-gray-500">1日あたり料金: ¥{{ number_format($car->price) }}</div>
-                                            @else
-                                                <div class="text-sm text-gray-500">1日あたり料金: ¥{{ number_format($car->price) }}</div>
-                                            @endif
+                                            <div class="mb-1">
+                                                合計料金: ¥{{ number_format($car->totalPrice) }}
+                                                <span class="text-sm text-gray-600 ml-2">（{{ $car->durationLabel === '0泊1日' ? '日帰り' : $car->durationLabel }}）</span>
+                                            </div>
+                                            <div class="text-sm text-gray-500">1日あたり料金: ¥{{ number_format($car->price) }}</div>                                        
                                         </div>
 
                                         {{-- 詳細ボタン --}}
