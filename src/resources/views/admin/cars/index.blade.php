@@ -74,6 +74,7 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <div class="flex items-center space-x-2">
+                                            <a href="{{ route('admin.cars.show', $car) }}" class="text-xs bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-2 rounded">詳細</a>
                                             <form action="{{ route('admin.cars.togglePublish', $car) }}" method="POST" class="inline-block">
                                                 @csrf
                                                 @method('PATCH')
@@ -101,13 +102,35 @@
                         </table>
                     </div>
 
-                    @if ($cars->hasPages())
-                        <div class="mt-4 p-4">
-                            {{ $cars->links() }}
+                    <div class="mt-4 p-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm text-gray-700">表示件数:</span>
+                                <div class="relative">
+                                    <select id="perPage" onchange="changePerPage(this.value)"
+                                        class="block w-full bg-white border border-gray-300 text-gray-700 py-2 px-4 pr-8 rounded-md leading-tight focus:outline-none focus:bg-white focus:border-gray-500">
+                                        <option value="25" @if(request('per_page', 25) == 25) selected @endif>25件</option>
+                                        <option value="50" @if(request('per_page') == 50) selected @endif>50件</option>
+                                        <option value="75" @if(request('per_page') == 75) selected @endif>75件</option>
+                                        <option value="100" @if(request('per_page') == 100) selected @endif>100件</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                {{ $cars->appends(['per_page' => request('per_page', 25)])->links() }}
+                            </div>
                         </div>
-                    @endif
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <script>
+        function changePerPage(value) {
+            const url = new URL(window.location);
+            url.searchParams.set('per_page', value);
+            window.location.href = url.toString();
+        }
+    </script>
 </x-admin-layout>

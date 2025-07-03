@@ -21,14 +21,14 @@ class UserSeeder extends Seeder
         User::create([
             'name' => '山田 太郎',
             'email' => 'taro@example.com',
-            'phone' => '09012345678',
+            'phone_number' => '09012345678',
             'password' => Hash::make('password'),
         ]);
 
         User::create([
             'name' => '佐藤 花子',
             'email' => 'hanako@example.com',
-            'phone' => '08098765432',
+            'phone_number' => '08098765432',
             'password' => Hash::make('password'),
         ]);
     }

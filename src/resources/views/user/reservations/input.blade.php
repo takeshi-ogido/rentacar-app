@@ -43,7 +43,8 @@
 
             {{-- ▼ お客様情報の入力 --}}
             <h3 class="text-lg font-semibold mb-4 text-gray-800">お客様情報</h3>
-            <form action="{{ route('user.cars.reservations.final-confirm', ['car' => $car->id]) }}" method="POST">                @csrf
+            <form action="{{ route('user.cars.reservations.final-confirm', ['car' => $car->id]) }}" method="POST">                
+                @csrf
 
                 {{-- hidden fields --}}
                 <input type="hidden" name="car_id" value="{{ $car->id }}">
