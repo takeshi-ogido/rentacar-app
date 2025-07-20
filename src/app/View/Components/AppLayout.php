@@ -10,8 +10,8 @@ class AppLayout extends Component
     /**
      * Get the view / contents that represents the component.
      */
-    public function render(): View
+    public function render(): View|Closure|string
     {
-        return view('admin.layouts.app');
+        return view('admin.layouts.admin');
     }
 }

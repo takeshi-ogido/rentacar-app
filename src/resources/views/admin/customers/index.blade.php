@@ -66,7 +66,11 @@
                                                 <ul class="list-disc ml-5">
                                                     @foreach($customer->reservations as $reservation)
                                                         <li>
-                                                            {{ $reservation->start_date->format('Y/m/d') }} 〜 {{ $reservation->end_date->format('Y/m/d') }} <br>
+                                                            @if($reservation->start_date && $reservation->end_date)
+                                                                {{ $reservation->start_date->format('Y/m/d') }} 〜 {{ $reservation->end_date->format('Y/m/d') }} <br>
+                                                            @else
+                                                                日付未設定 <br>
+                                                            @endif
                                                             車両ID: {{ $reservation->car_id }}
                                                         </li>
                                                     @endforeach
