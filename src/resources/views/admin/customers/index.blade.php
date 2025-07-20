@@ -85,18 +85,6 @@
                                             @if($customer->reservations->isEmpty())
                                                 <span class="text-gray-500">予約なし</span>
                                             @else
-<<<<<<< HEAD
-                                                <ul class="list-disc ml-5">
-                                                    @foreach($customer->reservations as $reservation)
-                                                        <li>
-                                                            @if($reservation->start_date && $reservation->end_date)
-                                                                {{ $reservation->start_date->format('Y/m/d') }} 〜 {{ $reservation->end_date->format('Y/m/d') }} <br>
-                                                            @else
-                                                                日付未設定 <br>
-                                                            @endif
-                                                            車両ID: {{ $reservation->car_id }}
-                                                        </li>
-=======
                                                 <div class="space-y-1">
                                                     @foreach($customer->reservations->take(3) as $reservation)
                                                         <div class="text-sm">
@@ -114,7 +102,6 @@
                                                                 </div>
                                                             @endif
                                                         </div>
->>>>>>> feature/higa_001
                                                     @endforeach
                                                     @if($customer->reservations->count() > 3)
                                                         <div class="text-xs text-gray-500">
