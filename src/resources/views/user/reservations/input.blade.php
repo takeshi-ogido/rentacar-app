@@ -14,7 +14,7 @@
                 <div><strong>車両名：</strong>{{ $car->name }}</div>
                 <div><strong>利用開始：</strong>{{ $start->format('Y年m月d日 H:i') }}</div>
                 <div><strong>利用終了：</strong>{{ $end->format('Y年m月d日 H:i') }}</div>
-                <div><strong>利用期間：</strong>{{ $isSameDay ? '日帰り' : "{$nights}泊{$days}日" }}</div>
+                <div><strong>利用期間：</strong>{{ $isDayTrip ? '日帰り' : "{$nights}泊{$days}日" }}</div>
                 <div><strong>車両料金：</strong>¥{{ number_format($car->price) }} × {{ $days }}日 = ¥{{ number_format($carPrice) }}</div>
 
                 @if (count($selectedOptionsDisplay))
@@ -23,10 +23,12 @@
                         @foreach ($selectedOptionsDisplay as $opt)
                             <li>
                                 {{ $opt['name'] }}：¥{{ number_format($opt['unit_price']) }}
-                                @if ($opt['quantity'] > 1)
+                                @if ($opt['is_quantity'])
                                     × {{ $opt['quantity'] }}個
+                                    = <strong>¥{{ number_format($opt['price']) }}</strong>
+                                @else
+                                    × {{ $days }}日 = <strong>¥{{ number_format($opt['price']) }}</strong>
                                 @endif
-                                × {{ $days }}日 = <strong>¥{{ number_format($opt['price']) }}</strong>
                             </li>
                         @endforeach
                     </ul>
@@ -41,7 +43,8 @@
 
             {{-- ▼ お客様情報の入力 --}}
             <h3 class="text-lg font-semibold mb-4 text-gray-800">お客様情報</h3>
-            <form action="{{ route('user.cars.reservations.final-confirm', ['car' => $car->id]) }}" method="POST">                @csrf
+            <form action="{{ route('user.cars.reservations.final-confirm', ['car' => $car->id]) }}" method="POST">                
+                @csrf
 
                 {{-- hidden fields --}}
                 <input type="hidden" name="car_id" value="{{ $car->id }}">

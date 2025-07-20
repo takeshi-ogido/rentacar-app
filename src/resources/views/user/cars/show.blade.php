@@ -16,7 +16,7 @@
                         <ul class="text-sm text-gray-700 space-y-2">
                             <li>利用開始：{{ $start ? $start->format('Y年m月d日 H:i') : '未指定' }}</li>
                             <li>利用終了：{{ $end ? $end->format('Y年m月d日 H:i') : '未指定' }}</li>
-                            <li>期間：{{ $isSameDay ? '日帰り' : "{$nights}泊{$days}日" }}</li>
+                            <li>期間：{{ $isDayTrip ? '日帰り' : "{$nights}泊{$days}日" }}</li>
                             <li>1日あたり：¥{{ number_format($car->price) }}</li>
                             <li>合計料金（税込）：¥{{ number_format($totalPrice) }}</li>
                         </ul>
@@ -34,13 +34,9 @@
                                 @endif
 
                                 @if ($car->images && $car->images->count())
-                                    <img src="{{ asset('storage/' . $car->images->first()->path) }}"
+                                    <img src="{{ asset('storage/' . $car->images->first()->filepath) }}"
                                          alt="car_picture"
                                          class="w-full rounded object-cover">
-                                @else
-                                    <div class="w-full h-40 bg-gray-300 flex items-center justify-center rounded text-gray-600">
-                                        画像なし
-                                    </div>
                                 @endif
                             </div>
 
@@ -81,10 +77,6 @@
                                             <img src="{{ asset('storage/' . $option->image_path) }}"
                                                  alt="{{ $option->name }}"
                                                  class="w-full h-full object-cover">
-                                        @else
-                                            <div class="w-full h-full flex items-center justify-center text-xs text-gray-400">
-                                                画像なし
-                                            </div>
                                         @endif
                                     </div>
 
@@ -100,7 +92,8 @@
                                     <div class="mt-4 sm:mt-0 sm:ml-auto text-right min-w-[160px]">
                                         @if ($option->is_quantity)
                                             <div class="mb-1 text-gray-700">
-                                                料金：+¥{{ number_format($option->price) }} / 日
+                                                料金：+¥{{ number_format($option->price) }} / 個
+                                                <!-- 修正: / 個 に変更済みのはずですが、再度確認ください -->
                                             </div>
                                             <label class="block mb-1 text-gray-700 font-medium">数量</label>
                                             <select name="options[{{ $option->id }}]" class="w-full border border-gray-300 rounded px-2 py-1">

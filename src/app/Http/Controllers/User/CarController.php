@@ -86,26 +86,29 @@ class CarController extends Controller
         // 関連画像と一緒に取得
         $cars = $query->with('images')->paginate(10)->through(function ($car) use ($startDateTime, $endDateTime) {
             // ページネーションされた各車両に対して料金計算ロジックを適用
-            if ($startDateTime && $endDateTime && $endDateTime->gt($startDateTime)) {
-                // 日付のみを比較するために、時刻をリセットしたコピーを作成
-                $startDate = $startDateTime->copy()->startOfDay();
-                $endDate = $endDateTime->copy()->startOfDay();
+            if ($startDateTime && $endDateTime && $endDateTime->gt($startDateTime)) { // 有効な期間が指定されている場合
+                // 料金計算用の日数 (24時間単位で切り上げ)
+                // 料金計算用の日数: カレンダー上の日数を使用 (最低1日)
+                $displayNights = $startDateTime->copy()->startOfDay()->diffInDays($endDateTime->copy()->startOfDay());
+                $displayDays = $displayNights + 1;
+                $isDayTrip = ($displayNights === 0); // 0泊なら日帰り
 
-                // カレンダー上の日数と泊数を計算
-                $days = $startDate->diffInDays($endDate) + 1;
-                $nights = $startDate->diffInDays($endDate);
-                $car->totalPrice = $car->price * $days;
+                $billingDays = $displayDays; // 料金計算には表示用の日数を使用
+                $car->totalPrice = $car->price * $billingDays;
 
-                if ($nights === 0) {
+                $nights = $displayNights; // durationLabelで使用するため
+                $days = $displayDays; // durationLabelで使用するため
+                
+                if ($isDayTrip) { // isDayTripを使用
                     $car->durationLabel = '日帰り';
                 } else {
                     $car->durationLabel = "{$nights}泊{$days}日";
                 }
             } else {
                 // 日数・泊数・同日判定・合計料金のデフォルト値を設定
-                $isSameDay = true;
-                $totalPrice = $car->price;            
-            }
+                $car->totalPrice = $car->price; // 期間未指定の場合は1日あたりの料金を合計料金として表示
+                $car->durationLabel = '日帰り'; // 期間未指定の場合は「日帰り」と表示            
+                }
 
             return $car;
         });
@@ -150,26 +153,28 @@ class CarController extends Controller
         $start = $startStr ? Carbon::parse($startStr) : null;
         $end = $endStr ? Carbon::parse($endStr) : null;
 
-        // 日数・泊数・同日判定・合計料金初期化
-        $days = 1;
-        $nights = 0;
-        $isSameDay = false;
-        $totalPrice = 0;
+        // 日数・泊数・日帰り判定・合計料金の初期化 (デフォルトは1日料金、日帰り)
+        $totalPrice = $car->price;
+        $days = 1; // 表示用日数
+        $nights = 0; // 表示用泊数
+        $isDayTrip = true; // 日帰り判定
 
-        if ($start && $end && $end->gt($start)) {
-             // 日付のみを比較するために、時刻をリセットしたコピーを作成
-            $startDate = $start->copy()->startOfDay();
-            $endDate = $end->copy()->startOfDay();
+        if ($start && $end && $end->gt($start)) { // 有効な期間が指定されている場合
+            // 料金計算用の日数 (24時間単位で切り上げ)
+            // 料金計算用の日数: カレンダー上の日数を使用 (最低1日)
+            $displayNights = $start->copy()->startOfDay()->diffInDays($end->copy()->startOfDay());
+            $displayDays = $displayNights + 1;
+            $isDayTrip = ($displayNights === 0); // 0泊なら日帰り
 
-            // カレンダー上の日数と泊数を計算
-            $days = $startDate->diffInDays($endDate) + 1;
-            $nights = $startDate->diffInDays($endDate);
-            $isSameDay = ($nights === 0);
+            $billingDays = $displayDays; // 料金計算には表示用の日数を使用
+            $totalPrice = $car->price * $billingDays;
 
-            $totalPrice = $car->price * $days;
+            $days = $displayDays;
+            $nights = $displayNights;
         } else {
-            // 日付指定がなければ日帰り1日分の料金
-            $totalPrice = $car->price;
+            // 日付指定がない場合は、合計料金は車両の1日料金、期間は日帰りとして表示
+            // (これはshow.blade.phpの予約概要サマリーの初期表示のため)
+            $totalPrice = $car->price; 
         }
 
         return view('user.cars.show', [
@@ -179,7 +184,7 @@ class CarController extends Controller
             'end' => $end,
             'days' => $days,
             'nights' => $nights,
-            'isSameDay' => $isSameDay,
+            'isDayTrip' => $isDayTrip, // isSameDayからisDayTripに変更
             'totalPrice' => $totalPrice,
         ]);
     }   

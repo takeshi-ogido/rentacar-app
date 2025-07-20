@@ -3,16 +3,28 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Notifications\ReservationCompleted;
 use App\Models\{Reservation, Car, Option};
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Carbon;
 
 class ReservationController extends Controller
 {
+    // 料金の計算ロジック（日数×基本料金）
     private function calculatePrice(Car $car, Carbon $start, Carbon $end, array $selectedOptions): array
     {
-        $days = max(ceil($start->diffInMinutes($end) / 1440), 1);
-        $carPrice = $car->price * $days;
+        // 1. 料金計算用の日数 (24時間単位で切り上げ)
+        // 例: 23時間59分 -> 1日, 24時間00分 -> 1日, 24時間01分 -> 2日
+        $billingDays = max(ceil($start->diffInMinutes($end) / 1440), 1);
+        $carPrice = $car->price * $billingDays;
+
+        // 2. 表示用の日数と泊数 (カレンダー上の日付を基準)
+        // 例: 4/20 10:00 - 4/20 18:00 -> 0泊1日
+        // 例: 4/20 10:00 - 4/21 10:00 -> 1泊2日
+        $displayNights = $start->copy()->startOfDay()->diffInDays($end->copy()->startOfDay());
+        $displayDays = $displayNights + 1;
+        $isDayTrip = ($displayNights === 0); // 0泊なら日帰り
 
         $options = Option::findMany(array_keys($selectedOptions))->keyBy('id');
         $optionTotal = 0;
@@ -22,15 +34,23 @@ class ReservationController extends Controller
             if (!isset($options[$id]) || !$val) continue;
             $opt = $options[$id];
             $qty = $opt->is_quantity ? (int)$val : 1;
-            $price = $opt->price * $qty * $days;
+
+            if ($opt->is_quantity) {
+                // 数量課金オプション (チャイルドシートなど) は固定料金
+                $price = $opt->price * $qty;
+            } else { // 日額課金オプション (Wi-Fiなど) は表示用の日数で計算
+                // 日額課金オプション (Wi-Fiなど) は日数で計算
+                $price = $opt->price * $qty * $displayDays; // $qty は常に1
+            }
+
             $optionTotal += $price;
-            $selected[] = ['name' => $opt->name, 'price' => $price, 'unit_price' => $opt->price, 'quantity' => $qty];
+            $selected[] = ['name' => $opt->name, 'price' => $price, 'unit_price' => $opt->price, 'quantity' => $qty, 'is_quantity' => $opt->is_quantity];
         }
 
         return [
-            'days' => $days,
-            'nights' => max($days - 1, 0),
-            'isSameDay' => $start->isSameDay($end),
+            'days' => $displayDays, // 表示用
+            'nights' => $displayNights, // 表示用
+            'isDayTrip' => $isDayTrip, // 表示用
             'carPrice' => $carPrice,
             'optionTotal' => $optionTotal,
             'selectedOptionsDisplay' => $selected,
@@ -38,6 +58,7 @@ class ReservationController extends Controller
         ];
     }
 
+    // オプションと日数の計算ロジック
     public function showOptionConfirm(Car $car, Request $request)
     {
         $validated = $request->validate([
@@ -64,6 +85,7 @@ class ReservationController extends Controller
         ));
     }
 
+    // 車の予約状況のバリデーション
     public function carConfirm(Car $car, Request $request)
     {
         $validated = $request->validate([
@@ -77,6 +99,7 @@ class ReservationController extends Controller
         return redirect()->route('user.cars.reservations.input', ['car' => $car->id]);
     }
 
+    // ユーザーの予約状況の変数たち
     public function input(Car $car)
     {
         $data = session("reservation.{$car->id}");
@@ -99,6 +122,7 @@ class ReservationController extends Controller
         ));
     }
 
+    // ユーザー情報のバリデーション
     private function reservationValidationRules(): array
     {
         return [
@@ -119,6 +143,7 @@ class ReservationController extends Controller
         ];
     }
 
+    // 最後の予約確認
     public function finalConfirm(Car $car, Request $request)
     {
         $validated = $request->validate($this->reservationValidationRules());
@@ -141,6 +166,8 @@ class ReservationController extends Controller
         ));
     }
 
+    
+    // 最後の予約確認
     public function reserved(Car $car, Request $request)
     {
         $validated = $request->validate([
@@ -174,54 +201,19 @@ class ReservationController extends Controller
         if (!empty($validated['phone_emergency'])) {
             $validated['phone_emergency'] = str_replace(['-', 'ー', ' '], '', $validated['phone_emergency']);
         }
+        $start = Carbon::parse($validated['start_datetime']);
+        $end = Carbon::parse($validated['end_datetime']);
+        $options = $validated['options'] ?? [];
+        $priceData = $this->calculatePrice($car, $start, $end, $options);
 
-        // 予約データの作成
-        $reservationData = [
-            'car_id' => $car->id,
-            'user_id' => auth()->id(),
-            'start_datetime' => $startDateTime,
-            'end_datetime' => $endDateTime,
-            'name_kanji' => $validated['name_kanji'],
-            'name_kana_sei' => $validated['name_kana_sei'],
-            'name_kana_mei' => $validated['name_kana_mei'],
-            'phone_main' => $validated['phone_main'],
-            'phone_emergency' => $validated['phone_emergency'],
-            'email' => $validated['email'],
-            'flight_departure' => $validated['flight_departure'],
-            'flight_return' => $validated['flight_return'],
-            'note' => $validated['note'],
-            'status' => 'pending',
-        ];
 
-        // 料金計算
-        $priceData = $this->calculatePrice($car, $startDateTime, $endDateTime, $validated['options'] ?? []);
-        $reservationData['total_price'] = $priceData['total'];
-
-        // 予約を作成
-        $reservation = Reservation::create($reservationData);
-
-        // オプションを関連付け
-        if (!empty($validated['options'])) {
-            $optionsData = [];
-            foreach ($validated['options'] as $optionId => $quantity) {
-                if ($quantity) {
-                    $option = Option::find($optionId);
-                    if ($option) {
-                        $optionPrice = $option->price * $quantity * $priceData['days'];
-                        $optionsData[$optionId] = [
-                            'quantity' => $quantity,
-                            'price' => $option->price,
-                            'total_price' => $optionPrice,
-                        ];
-                    }
-                }
-            }
-            $reservation->options()->attach($optionsData);
-        }
+        $reservation = new Reservation([...$validated, 'car_id' => $car->id, 'user_id' => auth()->id(), 'options_json' => json_encode($options), 'status' => 'confirmed', 'total_price' => $priceData['total']]);
+        $reservation->save();
 
         return redirect()->route('user.cars.reservations.complete', $reservation);
     }
 
+    // 予約完了メソッド
     public function complete(Car $car, Reservation $reservation)
     {
         return view('user.reservations.complete', compact('reservation'));
