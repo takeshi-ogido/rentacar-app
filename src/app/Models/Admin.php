@@ -19,6 +19,16 @@ class Admin extends Authenticatable
         'name',
         'email',
         'password',
+        'last_login_at',
+    ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'last_login_at' => 'datetime',
     ];
 
     // 必要に応じて、他のプロパティやメソッド（$hidden, $castsなど）も定義してください。

@@ -10,11 +10,23 @@ class CarModel extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'brand', 'type', 'price_per_day'];
+    protected $fillable = ['car_model', 'brand', 'type', 'price_per_day'];
 
     public function cars()
     {
         return $this->hasMany(Car::class);
+    }
+
+    // name属性のアクセサ（car_modelカラムをnameとしてアクセス可能にする）
+    public function getNameAttribute()
+    {
+        return $this->car_model;
+    }
+
+    // name属性のミューテータ（nameをcar_modelとして保存する）
+    public function setNameAttribute($value)
+    {
+        $this->attributes['car_model'] = $value;
     }
 }
 

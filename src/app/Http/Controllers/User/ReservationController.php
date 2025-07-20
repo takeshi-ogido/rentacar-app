@@ -143,28 +143,83 @@ class ReservationController extends Controller
 
     public function reserved(Car $car, Request $request)
     {
-        $validated = $request->validate($this->reservationValidationRules());
-        if ($car->id != $validated['car_id']) return back()->withErrors('車両が一致しません')->withInput();
+        $validated = $request->validate([
+            'start_datetime' => ['required', 'date_format:Y-m-d H:i'],
+            'end_datetime' => ['required', 'date_format:Y-m-d H:i', 'after:start_datetime'],
+            'name_kanji' => ['required', 'string', 'max:100'],
+            'name_kana_sei' => ['required', 'string', 'max:50'],
+            'name_kana_mei' => ['required', 'string', 'max:50'],
+            'phone_main' => ['required', 'string', 'max:20'],
+            'phone_emergency' => ['nullable', 'string', 'max:20'],
+            'email' => ['required', 'email', 'max:255'],
+            'flight_departure' => ['nullable', 'string', 'max:100'],
+            'flight_return' => ['nullable', 'string', 'max:100'],
+            'note' => ['nullable', 'string', 'max:1000'],
+            'options' => ['nullable', 'array'],
+            'options.*' => ['nullable', 'integer', 'exists:options,id'],
+        ]);
 
-        // 電話番号からハイフンやスペースを除去
+        // 重複予約チェック
+        $startDateTime = Carbon::parse($validated['start_datetime']);
+        $endDateTime = Carbon::parse($validated['end_datetime']);
+        
+        if (!Reservation::isCarAvailable($car->id, $startDateTime, $endDateTime)) {
+            return back()->withErrors(['start_datetime' => '指定された期間は既に予約されています。別の時間を選択してください。'])->withInput();
+        }
+
+        // 電話番号のフォーマット統一
         if (!empty($validated['phone_main'])) {
             $validated['phone_main'] = str_replace(['-', 'ー', ' '], '', $validated['phone_main']);
         }
         if (!empty($validated['phone_emergency'])) {
             $validated['phone_emergency'] = str_replace(['-', 'ー', ' '], '', $validated['phone_emergency']);
         }
-        $start = Carbon::parse($validated['start_datetime']);
-        $end = Carbon::parse($validated['end_datetime']);
-        $options = $validated['options'] ?? [];
-        $priceData = $this->calculatePrice($car, $start, $end, $options);
 
-        $reservation = new Reservation([...$validated, 'car_id' => $car->id, 'user_id' => auth()->id(), 'options_json' => json_encode($options), 'status' => 'confirmed', 'total_price' => $priceData['total']]);
-        $reservation->save();
+        // 予約データの作成
+        $reservationData = [
+            'car_id' => $car->id,
+            'user_id' => auth()->id(),
+            'start_datetime' => $startDateTime,
+            'end_datetime' => $endDateTime,
+            'name_kanji' => $validated['name_kanji'],
+            'name_kana_sei' => $validated['name_kana_sei'],
+            'name_kana_mei' => $validated['name_kana_mei'],
+            'phone_main' => $validated['phone_main'],
+            'phone_emergency' => $validated['phone_emergency'],
+            'email' => $validated['email'],
+            'flight_departure' => $validated['flight_departure'],
+            'flight_return' => $validated['flight_return'],
+            'note' => $validated['note'],
+            'status' => 'pending',
+        ];
 
-        // Notification::route('mail', $reservation->email)->notify(new ReservationCompleted($reservation));
-        // Notification::route('mail', config('mail.admin_address'))->notify(new ReservationCompleted($reservation));
+        // 料金計算
+        $priceData = $this->calculatePrice($car, $startDateTime, $endDateTime, $validated['options'] ?? []);
+        $reservationData['total_price'] = $priceData['total'];
 
-        return redirect()->route('user.cars.reservations.complete', ['car' => $car->id, 'reservation' => $reservation->id]);
+        // 予約を作成
+        $reservation = Reservation::create($reservationData);
+
+        // オプションを関連付け
+        if (!empty($validated['options'])) {
+            $optionsData = [];
+            foreach ($validated['options'] as $optionId => $quantity) {
+                if ($quantity) {
+                    $option = Option::find($optionId);
+                    if ($option) {
+                        $optionPrice = $option->price * $quantity * $priceData['days'];
+                        $optionsData[$optionId] = [
+                            'quantity' => $quantity,
+                            'price' => $option->price,
+                            'total_price' => $optionPrice,
+                        ];
+                    }
+                }
+            }
+            $reservation->options()->attach($optionsData);
+        }
+
+        return redirect()->route('user.cars.reservations.complete', $reservation);
     }
 
     public function complete(Car $car, Reservation $reservation)

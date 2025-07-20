@@ -21,6 +21,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'phone_number',
     ];
 
     /**
@@ -46,7 +47,23 @@ class User extends Authenticatable
         ];
     }
 
-        public function reservations()
+    /**
+     * 電話番号のアクセサ（phoneフィールドとの互換性のため）
+     */
+    public function getPhoneAttribute()
+    {
+        return $this->phone_number;
+    }
+
+    /**
+     * 電話番号のミューテータ（phoneフィールドとの互換性のため）
+     */
+    public function setPhoneAttribute($value)
+    {
+        $this->phone_number = $value;
+    }
+
+    public function reservations()
     {
         return $this->hasMany(Reservation::class);
     }
